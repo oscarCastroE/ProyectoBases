@@ -24,7 +24,7 @@ area_dis FLOAT(3) DEFAULT NULL,
 nacimientoT INT,
 nacimientoH INT,
 nacimientoM INT,
-geom SDO_GEOMETRY,
+geom SDO_GEOMETRY DEFAULT NULL,
 FOREIGN KEY (cod_can) REFERENCES canton(cod_can)
 ); 
 
