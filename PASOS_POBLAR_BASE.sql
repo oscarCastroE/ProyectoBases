@@ -210,38 +210,95 @@ select * from cantones;
 -- Ahora ya están las tablas de distritos, cantones y provincias totalmente pobladas. 
 
 -- Empezamos entonces poblando los hospitales y clínicas. 
--- Primero creo las tablas "hospitales" y "clinicas"
+-- Primero creo las tablas "area_salud", "centro_medico", "hospitales" y "clinicas"
 
-CREATE TABLE area_salud(
-nombre_as VARCHAR(30) PRIMARY KEY,
-total_consultas FLOAT (8,1) UNSIGNED,
-consultas_urgencia FLOAT (8,1) UNSIGNED,
-cosultas_hora FLOAT (8,1) UNSIGNED,
-consultas_dia FLOAT (8,1) UNSIGNED,
-area FLOAT (8,3) UNSIGNED,
-cant_ebais FLOAT (8,1) UNSIGNED,
-habitantes_ebais FLOAT (8,1) UNSIGNED,
-geom SDO_GEOMETRY
+CREATE TABLE areas_salud(
+id INT IDENTITY(1,1) PRIMARY KEY,
+nombre_as VARCHAR(30),
+total_consultas FLOAT,
+consultas_urgencia FLOAT,
+cosultas_hora FLOAT,
+consultas_dia FLOAT,
+area FLOAT,
+cant_ebais FLOAT,
+habitantes_ebais FLOAT,
+geom geometry
 ); 
 
-CREATE TABLE centro_medico(
-nombre VARCHAR(30) PRIMARY KEY,
-nombre_as VARCHAR(30) NOT NULL,
-geom SDO_GEOMETRY,
-FOREIGN KEY (nombre_as) REFERENCES area_salud(nombre_as)
+CREATE TABLE centros_medicos(
+id INT IDENTITY(1,1) PRIMARY KEY,
+nombre VARCHAR(30),
+id_as INT,
+geom geometry,
+FOREIGN KEY (id_as) REFERENCES areas_salud(id)
 ); 
 
-CREATE TABLE hospital(
-nombre_cm VARCHAR(30) PRIMARY KEY,
-FOREIGN KEY (nombre_cm) REFERENCES centro_medico(nombre)
+CREATE TABLE hospitales(
+id_cm INT PRIMARY KEY,
+FOREIGN KEY (id_cm) REFERENCES centros_medicos(id)
 ); 
 
-CREATE TABLE clinica(
-nombre_cm VARCHAR(30) PRIMARY KEY,
+CREATE TABLE clinicas(
+id_cm INT PRIMARY KEY,
 tipo VARCHAR(30), 
-FOREIGN KEY (nombre_cm) REFERENCES centro_medico(nombre)
+FOREIGN KEY (id_cm) REFERENCES centros_medicos(id)
 ); 
 
+drop table clinicas, hospitales, centros_medicos, areas_salud;
 
+-- Ahora cargo los shape de "hospitales" y "clinicas"
 
+select * from hospitales2008crtm05;
+select distinct NOMBRE from hospitales2008crtm05;
+select * from clinicas2008crtm05;
+select distinct NOMBRE, TIPO, RECURSOS, PROVINCIA, CANTON, DISTRITO from clinicas2008crtm05;
 
+-- Ahora inserto en la tabla de "centro_medico", "hospitales" y "clinicas" los datos
+-- de los shape de "hospitales" y "clinicas"
+
+-- HOSPITALES
+
+DECLARE @idGen INT
+DECLARE @idHospi INT
+DECLARE @nomHospi VARCHAR(30)
+DECLARE @geomHospi geometry
+DECLARE cursorHospi CURSOR FOR SELECT ID, NOMBRE, geom FROM hospitales2008crtm05
+OPEN cursorHospi
+FETCH NEXT FROM cursorHospi INTO @idHospi, @nomHospi, @geomHospi
+WHILE @@FETCH_STATUS = 0
+	BEGIN
+		INSERT INTO centros_medicos (nombre, geom) values (@nomHospi, @geomHospi)
+		SET @idGen  = (SELECT MAX(id) FROM centros_medicos)
+		INSERT INTO hospitales (id_cm) values (@idGen)
+		FETCH NEXT FROM cursorHospi INTO @idHospi, @nomHospi, @geomHospi
+	END
+CLOSE cursorHospi
+DEALLOCATE cursorHospi
+
+select * from centros_medicos;
+select * from hospitales;
+
+-- CLINICAS
+
+DECLARE @idGen INT
+DECLARE @idClin INT
+DECLARE @nomClin VARCHAR(30)
+DECLARE @tipoClin VARCHAR(30)
+DECLARE @geomClin geometry
+DECLARE cursorClin CURSOR FOR SELECT ID, NOMBRE, TIPO, geom FROM clinicas2008crtm05
+OPEN cursorClin 
+FETCH NEXT FROM cursorClin INTO @idClin, @nomClin, @tipoClin, @geomClin
+WHILE @@FETCH_STATUS = 0
+	BEGIN
+		INSERT INTO centros_medicos (nombre, geom) values (@nomClin, @geomClin)
+		SET @idGen  = (SELECT MAX(id) FROM centros_medicos)
+		INSERT INTO clinicas(id_cm, tipo) values (@idGen, @tipoClin)
+		FETCH NEXT FROM cursorClin INTO @idClin, @nomClin, @tipoClin, @geomClin
+	END
+CLOSE cursorClin
+DEALLOCATE cursorClin
+
+select * from centros_medicos;
+select * from clinicas;
+
+-- Ahora queda trabajar las areas de salud y las zonas de riesgo.
