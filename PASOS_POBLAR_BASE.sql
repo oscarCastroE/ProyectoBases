@@ -302,3 +302,108 @@ select * from centros_medicos;
 select * from clinicas;
 
 -- Ahora queda trabajar las areas de salud y las zonas de riesgo.
+-- Cargo los shape de "riesgo_incendio" y "riesgo_inundacion"
+
+select * from riesgoincendiocrtm05;
+select distinct MESSEC, CLASIFICAC, RIESGO from riesgoincendiocrtm05;
+select * from riesgos_incen;
+
+select * from riesginundacionrtm05;
+select distinct NOMBRE, TIPO, CLASIFICAC from riesginundacionrtm05;
+select * from riesgos_inun;
+
+-- Valido las geometrías de los riesgos 
+
+UPDATE riesgoincendiocrtm05
+SET geom = geom.MakeValid();
+
+UPDATE riesgoincendiocrtm05
+SET geom = geom.STUnion(geom.STStartPoint());
+
+UPDATE riesgoincendiocrtm05
+SET geom = geom.STBuffer(0.00001).STBuffer(-0.00001);
+
+UPDATE riesginundacionrtm05
+SET geom = geom.MakeValid();
+
+UPDATE riesginundacionrtm05
+SET geom = geom.STUnion(geom.STStartPoint());
+
+UPDATE riesginundacionrtm05
+SET geom = geom.STBuffer(0.00001).STBuffer(-0.00001);
+
+-- Ahora creo las tablas de "riesgos_inun" y "riesgo_incen"
+
+CREATE TABLE riesgos_inun(
+id INT IDENTITY(1,1) PRIMARY KEY,
+nombre VARCHAR(30),
+tipo VARCHAR(30),
+clasificacion VARCHAR(30),
+longitud FLOAT,
+geom geometry
+); 
+
+CREATE TABLE riesgos_incen(
+id INT IDENTITY(1,1) PRIMARY KEY,
+messec INT NOT NULL, 
+clasificacion VARCHAR(30),
+riesgo VARCHAR(30),
+area FLOAT,
+geom geometry
+); 
+
+-- Ahora voy a agrupar las zonas de riesgo de acuerdo a todas las características q no son la geometría
+
+-- INCENDIO
+
+DECLARE @interTable TABLE (messec int, clasificac varchar(30), riesgo varchar(30))
+INSERT INTO @interTable select distinct MESSEC, CLASIFICAC, RIESGO FROM riesgoincendiocrtm05
+
+DECLARE @GeomComp geometry
+SET @GeomComp = geometry::Parse('MULTIPOLYGON EMPTY')
+DECLARE @messecInc int 
+DECLARE @clasInc VARCHAR(30)
+DECLARE @riesInc VARCHAR(30)
+DECLARE cursorInc CURSOR FOR SELECT messec, clasificac, riesgo FROM @interTable
+OPEN cursorInc 
+FETCH NEXT FROM cursorInc INTO @messecInc, @clasInc, @riesInc
+WHILE @@FETCH_STATUS = 0
+	BEGIN
+		SELECT @GeomComp = @GeomComp.STUnion(r.geom)
+		FROM riesgoincendiocrtm05 r
+		WHERE r.MESSEC = @messecInc
+		AND r.CLASIFICAC = @clasInc
+		AND r.RIESGO = @riesInc
+		INSERT INTO riesgos_incen (messec, clasificacion, riesgo, geom) VALUES (@messecInc, @clasInc, @riesInc, @GeomComp)
+		SET @GeomComp = geometry::Parse('MULTIPOLYGON EMPTY')
+		FETCH NEXT FROM cursorInc INTO @messecInc, @clasInc, @riesInc
+	END
+CLOSE cursorInc 
+DEALLOCATE cursorInc 
+
+-- INUNDACIÓN 
+
+DECLARE @interTable TABLE (nombre varchar(30), tipo varchar(30), clasificac varchar(30))
+INSERT INTO @interTable select distinct NOMBRE, TIPO, CLASIFICAC FROM riesginundacionrtm05
+
+DECLARE @GeomComp geometry
+SET @GeomComp = geometry::Parse('MULTIPOLYGON EMPTY')
+DECLARE @nombreInun VARCHAR(30)
+DECLARE @tipoInun VARCHAR(30)
+DECLARE @clasInun VARCHAR(30)
+DECLARE cursorInun CURSOR FOR SELECT nombre, tipo, clasificac FROM @interTable
+OPEN cursorInun
+FETCH NEXT FROM cursorInun INTO @nombreInun, @tipoInun, @clasInun
+WHILE @@FETCH_STATUS = 0
+	BEGIN
+		SELECT @GeomComp = @GeomComp.STUnion(i.geom)
+		FROM riesginundacionrtm05 i
+		WHERE i.NOMBRE = @nombreInun
+		AND i.TIPO = @tipoInun
+		AND i.CLASIFICAC = @clasInun
+		INSERT INTO riesgos_inun (nombre, tipo, clasificacion, geom) VALUES (@nombreInun, @tipoInun, @clasInun, @GeomComp)
+		SET @GeomComp = geometry::Parse('MULTIPOLYGON EMPTY')
+		FETCH NEXT FROM cursorInun INTO @nombreInun, @tipoInun, @clasInun
+	END
+CLOSE cursorInun 
+DEALLOCATE cursorInun
