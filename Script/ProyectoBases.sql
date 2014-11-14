@@ -24,7 +24,7 @@ area_dis FLOAT(3) DEFAULT NULL,
 nacimientoT INT,
 nacimientoH INT,
 nacimientoM INT,
-geom SDO_GEOMETRY DEFAULT NULL,
+geom SDO_GEOMETRY,
 FOREIGN KEY (cod_can) REFERENCES canton(cod_can)
 ); 
 
@@ -41,7 +41,7 @@ geom SDO_GEOMETRY DEFAULT NULL
 );
 
 CREATE TABLE area_salud(
-nombre_as VARCHAR2(100) PRIMARY KEY,
+codigo INT PRIMARY KEY,
 total_consultas FLOAT(1),
 consultas_urgencia FLOAT(1),
 cosultas_hora FLOAT(1),
