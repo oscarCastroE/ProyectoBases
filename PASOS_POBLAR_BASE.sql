@@ -244,7 +244,7 @@ tipo VARCHAR(30),
 FOREIGN KEY (id_cm) REFERENCES centros_medicos(id)
 ); 
 
-drop table clinicas, hospitales, centros_medicos, areas_salud;
+drop table centro_inun, centro_incen, clinicas, hospitales, centros_medicos, areas_salud;
 
 -- Ahora cargo los shape de "hospitales" y "clinicas"
 
@@ -352,6 +352,24 @@ area FLOAT,
 geom geometry
 ); 
 
+CREATE TABLE centro_inun(
+id_cm INT NOT NULL,
+id_riesInun INT NOT NULL,
+PRIMARY KEY (id_cm, id_riesInun),
+FOREIGN KEY (id_cm) REFERENCES centros_medicos(id),
+FOREIGN KEY (id_riesInun) REFERENCES riesgos_inun(id)
+); 
+
+CREATE TABLE centro_incen(
+id_cm INT NOT NULL,
+id_riesIncen INT NOT NULL,
+PRIMARY KEY (id_cm, id_riesIncen),
+FOREIGN KEY (id_cm) REFERENCES centros_medicos(id),
+FOREIGN KEY (id_riesIncen) REFERENCES riesgos_incen(id)
+);
+
+drop table centro_incen, centro_inun, riesgos_inun, riesgos_incen;
+
 -- Ahora voy a agrupar las zonas de riesgo de acuerdo a todas las características q no son la geometría
 
 -- INCENDIO
@@ -359,12 +377,16 @@ geom geometry
 DECLARE @interTable TABLE (messec int, clasificac varchar(30), riesgo varchar(30))
 INSERT INTO @interTable select distinct MESSEC, CLASIFICAC, RIESGO FROM riesgoincendiocrtm05
 
+DECLARE @idGen INT
+DECLARE @idCmAs INT
+
 DECLARE @GeomComp geometry
 SET @GeomComp = geometry::Parse('MULTIPOLYGON EMPTY')
 DECLARE @messecInc int 
 DECLARE @clasInc VARCHAR(30)
 DECLARE @riesInc VARCHAR(30)
 DECLARE cursorInc CURSOR FOR SELECT messec, clasificac, riesgo FROM @interTable
+-- DECLARE cursorMN CURSOR FOR SELECT cm.id FROM centros_medicos cm WHERE @GeomComp.STContains(cm.geom) = 1
 OPEN cursorInc 
 FETCH NEXT FROM cursorInc INTO @messecInc, @clasInc, @riesInc
 WHILE @@FETCH_STATUS = 0
@@ -375,16 +397,34 @@ WHILE @@FETCH_STATUS = 0
 		AND r.CLASIFICAC = @clasInc
 		AND r.RIESGO = @riesInc
 		INSERT INTO riesgos_incen (messec, clasificacion, riesgo, geom) VALUES (@messecInc, @clasInc, @riesInc, @GeomComp)
+		SET @idGen = (SELECT MAX(id) FROM riesgos_incen)
+		DECLARE cursorMN CURSOR FOR SELECT cm.id FROM centros_medicos cm WHERE @GeomComp.STContains(cm.geom) = 1
+		OPEN cursorMN
+		FETCH NEXT FROM cursorMN INTO @idCmAs
+		WHILE @@FETCH_STATUS = 0
+			BEGIN
+				INSERT INTO centro_incen values (@idCmAs, @idGen)
+				FETCH NEXT FROM cursorMN INTO @idCmAs
+			END
+		CLOSE cursorMN
+		DEALLOCATE cursorMN	
 		SET @GeomComp = geometry::Parse('MULTIPOLYGON EMPTY')
 		FETCH NEXT FROM cursorInc INTO @messecInc, @clasInc, @riesInc
 	END
 CLOSE cursorInc 
 DEALLOCATE cursorInc 
 
+select * from centros_medicos;
+select * from riesgos_incen;
+select * from centro_incen;
+
 -- INUNDACIÓN 
 
 DECLARE @interTable TABLE (nombre varchar(30), tipo varchar(30), clasificac varchar(30))
 INSERT INTO @interTable select distinct NOMBRE, TIPO, CLASIFICAC FROM riesginundacionrtm05
+
+DECLARE @idGen INT
+DECLARE @idCmAs INT
 
 DECLARE @GeomComp geometry
 SET @GeomComp = geometry::Parse('MULTIPOLYGON EMPTY')
@@ -402,8 +442,23 @@ WHILE @@FETCH_STATUS = 0
 		AND i.TIPO = @tipoInun
 		AND i.CLASIFICAC = @clasInun
 		INSERT INTO riesgos_inun (nombre, tipo, clasificacion, geom) VALUES (@nombreInun, @tipoInun, @clasInun, @GeomComp)
+		SET @idGen = (SELECT MAX(id) FROM riesgos_inun)
+		DECLARE cursorMN CURSOR FOR SELECT cm.id FROM centros_medicos cm WHERE @GeomComp.STIntersects(cm.geom) = 1
+		OPEN cursorMN
+		FETCH NEXT FROM cursorMN INTO @idCmAs
+		WHILE @@FETCH_STATUS = 0
+			BEGIN
+				INSERT INTO centro_inun values (@idCmAs, @idGen)
+				FETCH NEXT FROM cursorMN INTO @idCmAs
+			END
+		CLOSE cursorMN
+		DEALLOCATE cursorMN	
 		SET @GeomComp = geometry::Parse('MULTIPOLYGON EMPTY')
 		FETCH NEXT FROM cursorInun INTO @nombreInun, @tipoInun, @clasInun
 	END
 CLOSE cursorInun 
 DEALLOCATE cursorInun
+
+select * from centros_medicos;
+select * from riesgos_inun;
+select * from centro_inun;
