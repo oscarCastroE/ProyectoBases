@@ -462,3 +462,48 @@ DEALLOCATE cursorInun
 select * from centros_medicos;
 select * from riesgos_inun;
 select * from centro_inun;
+
+---Creacion de tabla area_salud
+---Shape con los datos del area
+
+select * from AreaSalud_crtm05;
+
+UPDATE AreaSalud_crtm05
+SET geom = geom.MakeValid();
+
+alter table AreaSalud_crtm05 add area float;
+
+UPDATE AreaSalud_crtm05 
+SET area = geom.STArea();
+
+---Datos excel con las consultas
+---tabla para los datos se cargan del archivo InfoAreasSaludModificado
+
+CREATE TABLE area_con(
+codigo INT IDENTITY(1,1) PRIMARY KEY,
+total_consultas FLOAT,
+consultas_urgencia FLOAT,
+cosultas_hora FLOAT,
+consultas_dia FLOAT,
+cant_ebais FLOAT,
+habitantes_ebais FLOAT,
+); 
+
+---Cuando se tiene las dos tablas se crea la tabla final seleccionando los datos que se necesitan
+---Uniendo las tablas por el codigo del area
+
+select ac.codigo as id,
+	a_s.area_salud as nombre_as,
+	ac.total_consultas as total_consultas,
+	ac.consultas_urgencia as consultas_urgencia,
+	ac.cosultas_hora as consultas_hora,
+	ac.consultas_dia as consultas_dia,
+	a_s.area as area,
+	ac.cant_ebais as cant_ebais,
+	ac.habitantes_ebais as habitantes_ebais,
+	a_s.geom as geom
+into areas_salud
+from area_con as ac, AreaSalud_crtm05 as a_s
+where a_s.cod_as = ac.codigo
+order by ac.codigo;
+
