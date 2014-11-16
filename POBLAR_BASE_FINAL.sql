@@ -319,6 +319,23 @@ WHILE @@FETCH_STATUS = 0
 CLOSE cursorClin
 DEALLOCATE cursorClin
 
+-- AHORA CALCULO LAS LLAVES FORÁNEAS DE LA TABLA #4 DE CENTROS MÉDICOS
+
+DECLARE @idCM int 
+DECLARE @geomCM geometry
+DECLARE cursorCM CURSOR FOR SELECT id, geom FROM centros_medicos
+OPEN cursorCM 
+FETCH NEXT FROM cursorCM INTO @idCM, @geomCM
+WHILE @@FETCH_STATUS = 0
+	BEGIN
+		UPDATE centros_medicos 
+		SET id_as = ( SELECT a.id FROM areas_salud a WHERE a.geom.STContains(@geomCM) = 1 )
+		WHERE id = @idCM 
+		FETCH NEXT FROM cursorCM INTO @idCM, @geomCM
+	END
+CLOSE cursorCM
+DEALLOCATE cursorCM
+
 -- LLENO LAS TABLAS #7 (CENTRO_INCEN) Y #8 DE RIESGOS DE INCENDIO
 
 DECLARE @interTable TABLE (messec int, clasificac varchar(30), riesgo varchar(30))
@@ -9024,6 +9041,5 @@ drop table area_con;
 -- NOS FALTA: 
 	-- Arreglar lo de las regiones (insertarlas y calcularles la geometría)
 	-- Calcular la llave id_as de centros_medicos e insertarla, 
-	-- Calcular la llave id_region de areas_salud e insertarla,
-	-- Insertar bien los datos (nacimientoT, nacimientoH, nacimientoM) en distritos
+	-- Ordenar bien lo de la inserción de los datos (nacimientoT, nacimientoH, nacimientoM) en distritos
 	 
