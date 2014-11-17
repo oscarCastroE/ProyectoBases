@@ -31,6 +31,18 @@ CREATE TABLE cantones(
 	FOREIGN KEY (cod_prov) REFERENCES provincias(cod_prov)
 ); 
 
+CREATE TABLE distritos(
+	cod_dis INT PRIMARY KEY,
+	cod_can INT, 
+	nombre_dis VARCHAR(100) NOT NULL,
+	area_dis FLOAT(3) DEFAULT NULL,
+	nacimientoT INT,
+	nacimientoH INT,
+	nacimientoM INT,
+	geom geometry,
+	FOREIGN KEY (cod_can) REFERENCES cantones(cod_can)
+);
+
 -- Contiene los datos del SHAPEFILE.
 CREATE TABLE distritosSF(
 	cod_dis INT PRIMARY KEY,
@@ -42,7 +54,7 @@ CREATE TABLE distritosSF(
 	nacimientoM INT,
 	geom geometry,
 	FOREIGN KEY (cod_can) REFERENCES cantones(cod_can)
-); 
+);
 
 -- Contiene los datos del EXCEL.
 CREATE TABLE distritosEX(
@@ -98,13 +110,18 @@ select dis1.cod_dis as cod_dis,
 	dis2.nacimientoM as nacimientoM,
 	dis1.area_dis as area_dis,
 	dis1.geom as geom
-into distritos
+into distritosParcial
 from distritosSF as dis1, distritosEX as dis2
 where dis1.cod_dis = dis2.cod_dis
 order by dis1.area_dis;
 
+-- Movemos el contenido de la tabla parcial a la definitiva de "distritos".
+INSERT INTO distritos(cod_dis, cod_can, nombre_dis, nacimientoT, nacimientoH, nacimientoM, area_dis, geom)
+SELECT *
+FROM distritosParcial;
+
 -- Eliminamos las tablas temporales.
-drop table distritosSF, distritosEX, distritos2008crtm05;
+drop table distritosSF, distritosEX, distritosParcial, distritos2008crtm05;
 
 select * from distritos;
 
