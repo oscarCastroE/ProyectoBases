@@ -1,0 +1,43 @@
+NOTAS: no crear al principio ni distritos ni seguro (ESTO NO VA A FUNCAR ASÍ)
+CUANDO LLEGUE EL MOMENTO DE INSERTAR LOS SEGUROS, AÑADIRLE A DISTRITOS LA LLAVE PRIMARIA Y LUEGO CREAR LA TABLA DE SEGUROS (ESTO NO VA A FUNCAR ASÍ)
+LA CONSULTA DE INSERCIÓN DE SEGUROS SE HACE PERO TIRA ERROR:
+(1 row(s) affected)
+Msg 547, Level 16, State 0, Line 1357
+Instrucción INSERT en conflicto con la restricción FOREIGN KEY "FK__seguro__cod_dis__7DB89C09". El conflicto ha aparecido en la base de datos "master", tabla "dbo.distritos", column 'cod_dis'.
+Se terminó la instrucción.
+
+(1 row(s) affected)
+Msg 547, Level 16, State 0, Line 2737
+Instrucción INSERT en conflicto con la restricción FOREIGN KEY "FK__seguro__cod_dis__7DB89C09". El conflicto ha aparecido en la base de datos "master", tabla "dbo.distritos", column 'cod_dis'.
+Se terminó la instrucción.
+
+(1 row(s) affected)
+Msg 547, Level 16, State 0, Line 2737
+Instrucción INSERT en conflicto con la restricción FOREIGN KEY "FK__seguro__cod_dis__7DB89C09". El conflicto ha aparecido en la base de datos "master", tabla "dbo.distritos", column 'cod_dis'.
+Se terminó la instrucción.
+
+(1 row(s) affected)
+Msg 547, Level 16, State 0, Line 5495
+Instrucción INSERT en conflicto con la restricción FOREIGN KEY "FK__seguro__cod_dis__7DB89C09". El conflicto ha aparecido en la base de datos "master", tabla "dbo.distritos", column 'cod_dis'.
+Se terminó la instrucción.
+
+(1 row(s) affected)
+Msg 547, Level 16, State 0, Line 6874
+Instrucción INSERT en conflicto con la restricción FOREIGN KEY "FK__seguro__cod_dis__7DB89C09". El conflicto ha aparecido en la base de datos "master", tabla "dbo.distritos", column 'cod_dis'.
+Se terminó la instrucción.
+
+(1 row(s) affected)
+Msg 547, Level 16, State 0, Line 8253
+Instrucción INSERT en conflicto con la restricción FOREIGN KEY "FK__seguro__cod_dis__7DB89C09". El conflicto ha aparecido en la base de datos "master", tabla "dbo.distritos", column 'cod_dis'.
+Se terminó la instrucción.
+
+A LA HORA DE HACER EL JOIN ENTRE area_con y AreaSalud_crtm05, ME DA OTRO ERROR:
+Msg 207, Level 16, State 1, Line 7
+El nombre de columna 'area' no es válido.
+
+ARREGLAR ESTO:
+
+EL PROBLEMA ES QUE DISTRITOS Y AREAS_SALUD SE ESTÁN CREANDO EN EL INSERT INTO, NECESITO QUE SEAN UPDATES
+XQ SINO LAS OTRAS TABLAS QUEDAN SIN REFERENCIA Y NO ME SIRVEN LOS TRIGGER
+
+
