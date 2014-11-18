@@ -102,21 +102,23 @@ SET area_dis = geom.STArea();
 
 -- Unimos los datos de los archivos SHAPE y EXCEL en una nueva tabla.
 -- Guardamos los resultados en una nueva tabla llamada "distritos".
-select dis1.cod_dis as cod_dis,
-	dis2.cod_can as cod_can,
-	dis1.nombre_dis as nombre_dis,
-	dis2.nacimientoT as nacimientoT,
-	dis2.nacimientoH as nacimientoH,
-	dis2.nacimientoM as nacimientoM,
-	dis1.area_dis as area_dis,
-	dis1.geom as geom
+select distritosSF.cod_dis as cod_dis,
+	distritosSF.nombre_dis as nombre_dis,
+	distritosEX.nacimientoT as nacimientoT,
+	distritosEX.nacimientoH as nacimientoH,
+	distritosEX.nacimientoM as nacimientoM,
+	distritosSF.area_dis as area_dis,
+	distritosSF.geom as geom
 into distritosParcial
-from distritosSF as dis1, distritosEX as dis2
-where dis1.cod_dis = dis2.cod_dis
-order by dis1.area_dis;
+FROM
+     distritosEX
+RIGHT JOIN    
+     distritosSF
+ON     
+     distritosEX.cod_dis = distritosSF.cod_dis
 
 -- Movemos el contenido de la tabla parcial a la definitiva de "distritos".
-INSERT INTO distritos(cod_dis, cod_can, nombre_dis, nacimientoT, nacimientoH, nacimientoM, area_dis, geom)
+INSERT INTO distritos(cod_dis, nombre_dis, nacimientoT, nacimientoH, nacimientoM, area_dis, geom)
 SELECT *
 FROM distritosParcial;
 
