@@ -44,13 +44,15 @@ FOREIGN KEY (cod_prov) REFERENCES provincias(cod_prov)
 CREATE TABLE distritos(
 cod_dis INT PRIMARY KEY,
 cod_can INT, -- debería ser not null
+id_as INT, -- debería ser not null
 nombre_dis VARCHAR(30) NOT NULL,
 area_dis FLOAT DEFAULT NULL,
 nacimientoT INT DEFAULT NULL,
 nacimientoH INT DEFAULT NULL,
 nacimientoM INT DEFAULT NULL,
 geom geometry DEFAULT NULL,
-FOREIGN KEY (cod_can) REFERENCES cantones(cod_can)
+FOREIGN KEY (cod_can) REFERENCES cantones(cod_can),
+FOREIGN KEY (id_as) REFERENCES areas_salud(id)
 ); 
 CREATE TABLE region(
 id INT IDENTITY(1,1) PRIMARY KEY,
@@ -244,6 +246,8 @@ UPDATE AreaSalud_crtm05
 SET geom = geom.STUnion(geom.STStartPoint());
 UPDATE AreaSalud_crtm05
 SET geom = geom.STBuffer(0.00001).STBuffer(-0.00001);
+
+-- |||||||||||||||||||||| INSERTAR PRIMERO LAS REGIONES Y AREAS DE SALUD (IR ABAJO) ||||||||||||||||||||||
 
 -- LLENO LA TABLA #1 DE PROVINCIAS
 
@@ -1737,11 +1741,30 @@ FROM distritosParcial;
 -- Eliminamos las tablas temporales.
 drop table distritosSF, distritosEX, distritosParcial;
 
--- Inserto las llaves foráneas (esto lo hace el trigger)
+-- Inserto las llaves foráneas a areas_salud
 
+DECLARE @interTable TABLE (id_as int, intersection geometry, area float)
+DECLARE @codDist int 
+DECLARE @geomDist geometry
+DECLARE cursorDist CURSOR FOR SELECT cod_dis, geom FROM distritos
+OPEN cursorDist 
+FETCH NEXT FROM cursorDist INTO @codDist, @geomDist
+WHILE @@FETCH_STATUS = 0
+	BEGIN
+		INSERT INTO @interTable (id_as, intersection)
+		SELECT c.id, @geomDist.STIntersection(c.geom) FROM areas_salud c WHERE @geomDist.STIntersects(c.geom) = 1 
+		UPDATE @interTable
+		SET area = intersection.STArea();
+		UPDATE distritos 
+		SET id_as = ( SELECT c.id_as FROM @interTable c WHERE c.area = (SELECT MAX(area) from @interTable) )
+		WHERE cod_dis = @codDist
+		DELETE FROM @interTable WHERE 1=1
+		FETCH NEXT FROM cursorDist INTO @codDist, @geomDist
+	END
+CLOSE cursorDist
+DEALLOCATE cursorDist
 
--- AHORA INSERTO LAS REGIONES Y AREAS DE SALUD (IR ABAJO)
-
+-- Inserto las llaves foráneas a cantones (esto lo hace el trigger)
 
 -- LLENO LAS TABLAS #4 (CENTROS MÉDICOS) Y #5 DE HOSPITALES
 
