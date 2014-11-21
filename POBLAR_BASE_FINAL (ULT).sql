@@ -359,8 +359,8 @@ SELECT CODNUM, NCANTON, geom
 FROM cantones2008ctm05;
 
 -- Calculo las áreas
-UPDATE cantones
-SET area_can = geom.STArea();
+-- UPDATE cantones
+-- SET area_can = geom.STArea();
 
 -- Inserto las llaves foráneas (esto lo hizo el trigger)
 
@@ -1822,7 +1822,7 @@ FROM distritosParcial;
 -- Eliminamos las tablas temporales.
 drop table distritosSF, distritosEX, distritosParcial;
 
--- Inserto las llaves foráneas a areas_salud
+-- Inserto las llaves foráneas a areas_salud en la tabla distritos
 
 DECLARE @interTable TABLE (id_as int, intersection geometry, area float)
 DECLARE @codDist int 
@@ -10599,10 +10599,10 @@ UPDATE areas_salud
 SET area = geom.STArea();
 
 -- LLENO LA TABLA #13 DE REGIONES
-       -- |||||||||| ESTO LO SACO DEL ARCHIVO Regiones con Geometría ||||||||||
+       -- |||||||||| ESTO LO SACO DEL ARCHIVO Regiones con Geometría |||||||||| (YA NO USO ESTE ARCHIVO)
+	   
 ---Ya que Regiones con geometria esta dando problemas
---Inserto regiones aqui y calculo la geometria con la funcion agregada al final
-
+--Inserto regiones aqui y calculo la geometria con la funcion agregada abajo
 
 SET IDENTITY_INSERT dbo.region ON;
 
@@ -10627,6 +10627,26 @@ VALUES(6,'Region Huetar Atlantica');
 INSERT INTO region(id,nombre_re)
 VALUES(7,'Region Huetar Norte');
 
+---Calculo geometrias de regiones a partir de la geometria de las areas de salud
+
+DECLARE @codRegion int
+DECLARE @GeomRegion geometry
+SET @GeomRegion = geometry::Parse('MULTIPOLYGON EMPTY')
+DECLARE cursorCodRegion CURSOR FOR SELECT id FROM region 
+OPEN cursorCodRegion
+FETCH NEXT FROM cursorCodRegion INTO @codRegion
+WHILE @@FETCH_STATUS = 0
+	BEGIN
+		SELECT @GeomRegion = @GeomRegion.STUnion(ar.geom)
+		FROM areas_salud ar
+		WHERE ar.id_region = @codRegion
+		UPDATE region  SET geom = @GeomRegion
+		WHERE id = @codRegion
+		SET @GeomRegion = geometry::Parse('MULTIPOLYGON EMPTY')
+		FETCH NEXT FROM cursorCodRegion INTO @codRegion
+	END
+CLOSE cursorCodRegion
+DEALLOCATE cursorCodRegion
 
 -- AHORA INSERTAMOS LAS LLAVES FORÁNEAS A REGIÓN EN ÁREAS DE SALUD
 
@@ -10943,7 +10963,6 @@ VALUES (102, 2);
 INSERT INTO AS_REGION (CODIGO_AS, CODIGO_REGION) 
 VALUES (103, 2);
 
-	 
 -- Agrego la región correspondiente a cada área con un join
 UPDATE
      areas_salud 
@@ -10956,28 +10975,6 @@ INNER JOIN
 ON     
      areas_salud.id = as_region.codigo_as;
      
-
+-- borro la tabla temporal
 DROP TABLE as_region;
 
----Calculo geometrias de regiones
-
---Creamos la geometria de las regiones a partir de la geometria de las areas de salud
-
-DECLARE @codRegion int
-DECLARE @GeomRegion geometry
-SET @GeomRegion = geometry::Parse('MULTIPOLYGON EMPTY')
-DECLARE cursorCodRegion CURSOR FOR SELECT id FROM region 
-OPEN cursorCodRegion
-FETCH NEXT FROM cursorCodRegion INTO @codRegion
-WHILE @@FETCH_STATUS = 0
-	BEGIN
-		SELECT @GeomRegion = @GeomRegion.STUnion(ar.geom)
-		FROM areas_salud ar
-		WHERE ar.id_region = @codRegion
-		UPDATE region  SET geom = @GeomRegion
-		WHERE id = @codRegion
-		SET @GeomRegion = geometry::Parse('MULTIPOLYGON EMPTY')
-		FETCH NEXT FROM cursorCodRegion INTO @codRegion
-	END
-CLOSE cursorCodRegion
-DEALLOCATE cursorCodRegion
