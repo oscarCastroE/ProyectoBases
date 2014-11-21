@@ -163,7 +163,7 @@ BEGIN
 	DECLARE @newGeom geometry
 	DECLARE cursorC CURSOR FOR SELECT cod_can, geom FROM inserted 
 	OPEN cursorC
-	FETCH NEXT FROM cursorD INTO @newCodcan, @newGeom
+	FETCH NEXT FROM cursorC INTO @newCodcan, @newGeom
 	WHILE @@FETCH_STATUS = 0
 		BEGIN
 			IF (@newGeom.STGeometryType() = 'POLYGON' OR @newGeom.STGeometryType() = 'MULTIPOLYGON' OR @newGeom.STGeometryType() = 'GEOMETRYCOLLECTION')
