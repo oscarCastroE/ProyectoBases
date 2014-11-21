@@ -77,7 +77,7 @@ FOREIGN KEY (id_as) REFERENCES areas_salud(id)
 ); 
 CREATE TABLE centros_medicos(
 id INT IDENTITY(1,1) PRIMARY KEY,
-nombre VARCHAR(30) NOT NULL,
+nombre VARCHAR(50) NOT NULL,
 id_as INT, -- deberia ser not null
 geom geometry DEFAULT NULL,
 FOREIGN KEY (id_as) REFERENCES areas_salud(id)
@@ -155,6 +155,33 @@ BEGIN
 	CLOSE cursorCan
 	DEALLOCATE cursorCan
 END;
+CREATE TRIGGER canTrigger2 on cantones
+INSTEAD OF INSERT
+AS
+BEGIN
+	DECLARE @newCodcan int
+	DECLARE @newGeom geometry
+	DECLARE cursorC CURSOR FOR SELECT cod_can, geom FROM inserted 
+	OPEN cursorC
+	FETCH NEXT FROM cursorD INTO @newCodcan, @newGeom
+	WHILE @@FETCH_STATUS = 0
+		BEGIN
+			IF (@newGeom.STGeometryType() = 'POLYGON' OR @newGeom.STGeometryType() = 'MULTIPOLYGON' OR @newGeom.STGeometryType() = 'GEOMETRYCOLLECTION')
+			AND ( (select top 1 p.cod_prov from provincias p where p.geom.STIntersects(@newGeom) = 1) IS NOT NULL )
+			BEGIN
+				INSERT INTO cantones
+				SELECT * 
+				FROM inserted
+				WHERE cod_can = @newCodcan;
+				UPDATE cantones
+				SET area_can = geom.STArea()
+				WHERE cod_can = @newCodcan;
+			END
+			FETCH NEXT FROM cursorD INTO @newCodcan, @newGeom
+		END
+	CLOSE cursorC
+	DEALLOCATE cursorC
+END;
 CREATE TRIGGER distTrigger
 ON distritos
 AFTER INSERT--, UPDATE
@@ -181,6 +208,32 @@ BEGIN
 	CLOSE cursorDist
 	DEALLOCATE cursorDist
 END;
+CREATE TRIGGER distTrigger2 on distritos
+INSTEAD OF INSERT
+AS
+BEGIN
+	DECLARE @newCoddis int
+	DECLARE @newGeom geometry
+	DECLARE cursorD CURSOR FOR SELECT cod_dis, geom FROM inserted 
+	OPEN cursorD
+	FETCH NEXT FROM cursorD INTO @newCoddis, @newGeom
+	WHILE @@FETCH_STATUS = 0
+		BEGIN
+			IF (@newGeom.STGeometryType() = 'POLYGON' OR @newGeom.STGeometryType() = 'MULTIPOLYGON' OR @newGeom.STGeometryType() = 'GEOMETRYCOLLECTION')
+			AND ( (select top 1 c.cod_can from cantones c where c.geom.STIntersects(@newGeom) = 1) IS NOT NULL )
+			BEGIN
+				INSERT INTO distritos 
+				SELECT * 
+				FROM inserted
+				WHERE cod_dis = @newCoddis;
+				--UPDATE distritos
+				--SET area_can = geom.STArea();
+			END
+			FETCH NEXT FROM cursorD INTO @newCoddis, @newGeom
+		END
+	CLOSE cursorD
+	DEALLOCATE cursorD
+END;
 CREATE TRIGGER cmTrigger
 ON centros_medicos
 AFTER INSERT--, UPDATE
@@ -197,6 +250,32 @@ BEGIN
 			SET id_as = ( SELECT a.id FROM areas_salud a WHERE a.geom.STContains(@geomCM) = 1 )
 			WHERE id = @idCM 
 			FETCH NEXT FROM cursorCM INTO @idCM, @geomCM
+		END
+	CLOSE cursorCM
+	DEALLOCATE cursorCM
+END;
+CREATE TRIGGER cmTrigger2 on centros_medicos
+INSTEAD OF INSERT
+AS
+BEGIN
+	DECLARE @newId int
+	DECLARE @newGeom geometry
+	DECLARE cursorCM CURSOR FOR SELECT id, geom FROM inserted 
+	OPEN cursorCM
+	FETCH NEXT FROM cursorCM INTO @newId, @newGeom
+	WHILE @@FETCH_STATUS = 0
+		BEGIN
+			IF (inserted.geom.STGeometryType() = 'POINT')
+			AND ( (select top 1 asa.id from areas_salud asa where asa.geom.STContains(@newGeom) = 1) IS NOT NULL )
+			BEGIN
+				INSERT INTO centros_salud
+				SELECT * 
+				FROM inserted
+				WHERE id = @newId;
+				--UPDATE distritos
+				--SET area_can = geom.STArea();
+			END
+			FETCH NEXT FROM cursorCM INTO @newId, @newGeom
 		END
 	CLOSE cursorCM
 	DEALLOCATE cursorCM
