@@ -40,3 +40,21 @@ from
 			r.id
 	) s
 where r.id = s.id;
+
+-- Consulta #3
+-- Cuáles son los centros médicos no cubiertos por ningún riesgo de inundación o de incendio?
+SELECT cm.nombre, asa.nombre_as, cm.geom, d.nombre_dis, c.nombre_can, p.nombre_prov, CASE WHEN cm.id in (select id_cm from hospitales) THEN 'HOSPITAL' ELSE 'CLINICA' END as TIPO
+FROM centros_medicos as cm, areas_salud as asa, distritos d, cantones c, provincias p
+WHERE cm.id in (SELECT id 
+				FROM centros_medicos
+				EXCEPT
+					(SELECT distinct cm.id
+					 from centros_medicos as cm, riesgos_incen as ri, riesgos_inun as ri2
+					 where ri.geom.STIntersects(cm.geom) = 'TRUE' 
+					 or ri2.geom.STIntersects(cm.geom) = 'TRUE'
+					) 
+			) 
+AND cm.id_as = asa.id
+AND d.geom.STContains(cm.geom) = 1 
+AND c.cod_can = d.cod_can
+AND p.cod_prov = c.cod_prov;
