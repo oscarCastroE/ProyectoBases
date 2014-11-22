@@ -74,4 +74,31 @@ where can.cod_can = (
 								order by COUNT(distinct cm.id)
 							) as A
 					) 
-						
+
+-- Consulta #5
+-- Encontrar los 4 hospitales más cercanos a una clínica en un rango de 25 Kilómetros.
+-- Utiliza 'Vecinos Más Cercanos' y 'Buffer'.
+-- Encontramos la geometría de la clínica que deseamos evaluar.
+DECLARE @Clinica geometry
+SELECT @Clinica = geom FROM
+							centros_medicos
+							RIGHT JOIN clinicas
+							ON clinicas.id_cm = centros_medicos.id
+						WHERE nombre = 'CLINICA PALMARES';
+
+-- Creamos un buffer de búsqueda para la clínica que evaluamos.
+DECLARE @BUFFER geometry
+SET @BUFFER = @Clinica.STBuffer(25000)
+
+SELECT TOP 4
+	nombre,
+	geom.STDistance(@Clinica) AS distancia
+FROM
+	centros_medicos cm
+	RIGHT JOIN hospitales h
+	ON h.id_cm = cm.id
+WHERE geom.Filter(@BUFFER) = 1
+ORDER BY
+	geom.STDistance(@Clinica) ASC
+
+					
