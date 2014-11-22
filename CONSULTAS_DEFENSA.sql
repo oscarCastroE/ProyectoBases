@@ -58,3 +58,20 @@ AND cm.id_as = asa.id
 AND d.geom.STContains(cm.geom) = 1 
 AND c.cod_can = d.cod_can
 AND p.cod_prov = c.cod_prov;
+
+-- Consulta #4
+-- seleccionar el centro de uno de los cantones con menos centros médicos
+select can.geom.STCentroid() as centro, can.nombre_can as nombre_canton
+from cantones can
+where can.cod_can = (	
+						select top 1 A.cc
+						from 
+							(
+								select top 1 c.cod_can as cc, COUNT(distinct cm.id) as cms
+								from centros_medicos as cm, cantones as c
+								where cm.geom.STIntersects(c.geom) = 1 
+								group by c.cod_can
+								order by COUNT(distinct cm.id)
+							) as A
+					) 
+						
