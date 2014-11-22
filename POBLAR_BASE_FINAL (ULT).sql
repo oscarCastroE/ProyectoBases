@@ -177,7 +177,7 @@ BEGIN
 				SET area_can = geom.STArea()
 				WHERE cod_can = @newCodcan;
 			END
-			FETCH NEXT FROM cursorD INTO @newCodcan, @newGeom
+			FETCH NEXT FROM cursorC INTO @newCodcan, @newGeom
 		END
 	CLOSE cursorC
 	DEALLOCATE cursorC
@@ -265,7 +265,7 @@ BEGIN
 	FETCH NEXT FROM cursorCM INTO @newId, @newGeom
 	WHILE @@FETCH_STATUS = 0
 		BEGIN
-			IF (inserted.geom.STGeometryType() = 'POINT')
+			IF (@newGeom.STGeometryType() = 'POINT')
 			AND ( (select top 1 asa.id from areas_salud asa where asa.geom.STContains(@newGeom) = 1) IS NOT NULL )
 			BEGIN
 				INSERT INTO centros_salud
