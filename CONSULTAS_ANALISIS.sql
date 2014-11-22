@@ -50,13 +50,20 @@ from distritos d, cantones c, riesgos_incen ri
 where d.cod_can = c.cod_can
 and ri.geom.STIntersects(d.geom) = 1;
 
--- CONSULTA #2 (SOLO RELACIONES TOPOLÓGICAS)
+-- CONSULTA #3 (SOLO RELACIONES TOPOLÓGICAS)
 -- áreas de salud que se encuentran en riesgos de incendio alto
 -- (solo relaciones topológicas)
 select ri.id, a.nombre_as, a.id , a.geom.STIntersection(ri.geom) as geomRiesgo
 from riesgos_incen as ri, areas_salud as a
 where ri.riesgo = 'ALTO'
 and a.geom.STIntersection(ri.geom).STArea() > 0;
+
+-- CONSULTA 3 EMERGENCIA
+-- áreas de salud afectadas por riesgos de incendio
+select distinct d.id, d.nombre_as, ri.id
+from areas_salud d, 
+	riesgos_incen ri 
+where d.geom.STIntersects(ri.geom) = 1
 
 -- CON ESTO LIMPIA EL BUFFER Y EL CACHÉ
 DBCC DROPCLEANBUFFERS;
