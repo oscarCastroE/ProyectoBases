@@ -10653,27 +10653,6 @@ VALUES(6,'Region Huetar Atlantica');
 INSERT INTO region(id,nombre_re)
 VALUES(7,'Region Huetar Norte');
 
----Calculo geometrias de regiones a partir de la geometria de las areas de salud
-
-DECLARE @codRegion int
-DECLARE @GeomRegion geometry
-SET @GeomRegion = geometry::Parse('MULTIPOLYGON EMPTY')
-DECLARE cursorCodRegion CURSOR FOR SELECT id FROM region 
-OPEN cursorCodRegion
-FETCH NEXT FROM cursorCodRegion INTO @codRegion
-WHILE @@FETCH_STATUS = 0
-	BEGIN
-		SELECT @GeomRegion = @GeomRegion.STUnion(ar.geom)
-		FROM areas_salud ar
-		WHERE ar.id_region = @codRegion
-		UPDATE region  SET geom = @GeomRegion
-		WHERE id = @codRegion
-		SET @GeomRegion = geometry::Parse('MULTIPOLYGON EMPTY')
-		FETCH NEXT FROM cursorCodRegion INTO @codRegion
-	END
-CLOSE cursorCodRegion
-DEALLOCATE cursorCodRegion
-
 -- AHORA INSERTAMOS LAS LLAVES FORÁNEAS A REGIÓN EN ÁREAS DE SALUD
 
 -- Creo una tabla temporal
@@ -11000,6 +10979,27 @@ INNER JOIN
      as_region 
 ON     
      areas_salud.id = as_region.codigo_as;
+
+---Calculo geometrias de regiones a partir de la geometria de las areas de salud
+
+DECLARE @codRegion int
+DECLARE @GeomRegion geometry
+SET @GeomRegion = geometry::Parse('MULTIPOLYGON EMPTY')
+DECLARE cursorCodRegion CURSOR FOR SELECT id FROM region 
+OPEN cursorCodRegion
+FETCH NEXT FROM cursorCodRegion INTO @codRegion
+WHILE @@FETCH_STATUS = 0
+	BEGIN
+		SELECT @GeomRegion = @GeomRegion.STUnion(ar.geom)
+		FROM areas_salud ar
+		WHERE ar.id_region = @codRegion
+		UPDATE region  SET geom = @GeomRegion
+		WHERE id = @codRegion
+		SET @GeomRegion = geometry::Parse('MULTIPOLYGON EMPTY')
+		FETCH NEXT FROM cursorCodRegion INTO @codRegion
+	END
+CLOSE cursorCodRegion
+DEALLOCATE cursorCodRegion
      
 -- borro la tabla temporal
 DROP TABLE as_region;
