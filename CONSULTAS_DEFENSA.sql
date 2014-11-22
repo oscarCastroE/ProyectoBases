@@ -101,4 +101,19 @@ WHERE geom.Filter(@BUFFER) = 1
 ORDER BY
 	geom.STDistance(@Clinica) ASC
 
+-- Consulta #6
+-- Porcentaje de área cubierta por un riesgo de incendio
+-- dentro de un área de salud.
+select 
+	ri.id,
+	sa.nombre_as, 
+	ri.geom as ZonaEnPeligro,
+	(sa.geom.STIntersection(ri.geom.STUnion(ri.geom)).STArea()*100)/sa.geom.STArea() as Porcentaje
+from 
+	areas_salud sa,
+	riesgos_incen ri
+where 
+	sa.geom.STIntersection(ri.geom).STArea() > 0
+order by
+	ri.id
 					
