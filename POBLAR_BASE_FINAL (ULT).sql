@@ -129,6 +129,32 @@ PRIMARY KEY(cod_dis, tipo_seguro),
 FOREIGN KEY(cod_dis) REFERENCES distritos(cod_dis)
 );
 
+CREATE TRIGGER provTrigger on provincias
+INSTEAD OF INSERT
+AS
+BEGIN
+	DECLARE @newCodprov int
+	DECLARE @newGeom geometry
+	DECLARE cursorP CURSOR FOR SELECT cod_prov, geom FROM inserted 
+	OPEN cursorP
+	FETCH NEXT FROM cursorP INTO @newCodprov, @newGeom
+	WHILE @@FETCH_STATUS = 0
+		BEGIN
+			IF (@newGeom.STGeometryType() = 'POLYGON' OR @newGeom.STGeometryType() = 'MULTIPOLYGON' OR @newGeom.STGeometryType() = 'GEOMETRYCOLLECTION')
+			BEGIN
+				INSERT INTO provincias
+				SELECT * 
+				FROM inserted
+				WHERE cod_prov = @newCodprov;
+				UPDATE provincias
+				SET area_prov = geom.STArea()
+				WHERE cod_prov = @newCodprov;
+			END
+			FETCH NEXT FROM cursorP INTO @newCodprov, @newGeom
+		END
+	CLOSE cursorP
+	DEALLOCATE cursorP
+END;
 CREATE TRIGGER canTrigger
 ON cantones
 AFTER INSERT--, UPDATE
@@ -177,7 +203,7 @@ BEGIN
 				SET area_can = geom.STArea()
 				WHERE cod_can = @newCodcan;
 			END
-			FETCH NEXT FROM cursorD INTO @newCodcan, @newGeom
+			FETCH NEXT FROM cursorC INTO @newCodcan, @newGeom
 		END
 	CLOSE cursorC
 	DEALLOCATE cursorC
@@ -265,7 +291,7 @@ BEGIN
 	FETCH NEXT FROM cursorCM INTO @newId, @newGeom
 	WHILE @@FETCH_STATUS = 0
 		BEGIN
-			IF (inserted.geom.STGeometryType() = 'POINT')
+			IF (@newGeom.STGeometryType() = 'POINT')
 			AND ( (select top 1 asa.id from areas_salud asa where asa.geom.STContains(@newGeom) = 1) IS NOT NULL )
 			BEGIN
 				INSERT INTO centros_salud
