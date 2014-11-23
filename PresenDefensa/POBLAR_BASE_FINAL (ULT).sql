@@ -436,7 +436,6 @@ CREATE TABLE distritosEX(
 INSERT INTO distritosSF(cod_dis, nombre_dis)
 SELECT DISTINCT CODDIST, NDISTRITO
 FROM distritos2008crtm05;
-
 DECLARE @codDist int
 DECLARE @GeomComp geometry
 SET @GeomComp = geometry::Parse('MULTIPOLYGON EMPTY')
@@ -1967,6 +1966,10 @@ WHILE @@FETCH_STATUS = 0
 CLOSE cursorInc 
 DEALLOCATE cursorInc 
 
+-- Inserto el área de los riesgos de incendio
+UPDATE riesgos_incen
+set area = geom.STArea();
+
 -- LLENO LAS TABLAS #9 (CENTRO_INUN) Y #10 DE RIESGOS DE INUNDACIÓN
 
 DECLARE @interTable TABLE (nombre varchar(30), tipo varchar(30), clasificac varchar(30))
@@ -2005,6 +2008,10 @@ WHILE @@FETCH_STATUS = 0
 	END
 CLOSE cursorInun 
 DEALLOCATE cursorInun
+
+-- Inserto el área de los riesgos de inundación
+UPDATE riesgos_inun 
+set longitud = geom.STLength();
 
 -- LLENO LA TABLA #11 DE SEGUROS
 
@@ -10654,27 +10661,6 @@ VALUES(6,'Region Huetar Atlantica');
 INSERT INTO region(id,nombre_re)
 VALUES(7,'Region Huetar Norte');
 
--- Calculo geometrias de regiones a partir de la geometria de las areas de salud
-
-DECLARE @codRegion int
-DECLARE @GeomRegion geometry
-SET @GeomRegion = geometry::Parse('MULTIPOLYGON EMPTY')
-DECLARE cursorCodRegion CURSOR FOR SELECT id FROM region 
-OPEN cursorCodRegion
-FETCH NEXT FROM cursorCodRegion INTO @codRegion
-WHILE @@FETCH_STATUS = 0
-	BEGIN
-		SELECT @GeomRegion = @GeomRegion.STUnion(ar.geom)
-		FROM areas_salud ar
-		WHERE ar.id_region = @codRegion
-		UPDATE region  SET geom = @GeomRegion
-		WHERE id = @codRegion
-		SET @GeomRegion = geometry::Parse('MULTIPOLYGON EMPTY')
-		FETCH NEXT FROM cursorCodRegion INTO @codRegion
-	END
-CLOSE cursorCodRegion
-DEALLOCATE cursorCodRegion
-
 -- AHORA INSERTAMOS LAS LLAVES FORÁNEAS A REGIÓN EN ÁREAS DE SALUD
 
 -- Creo una tabla temporal
@@ -11005,3 +10991,23 @@ ON
 -- borro la tabla temporal
 DROP TABLE as_region;
 
+-- Calculo geometrias de regiones a partir de la geometria de las areas de salud
+
+DECLARE @codRegion int
+DECLARE @GeomRegion geometry
+SET @GeomRegion = geometry::Parse('MULTIPOLYGON EMPTY')
+DECLARE cursorCodRegion CURSOR FOR SELECT id FROM region 
+OPEN cursorCodRegion
+FETCH NEXT FROM cursorCodRegion INTO @codRegion
+WHILE @@FETCH_STATUS = 0
+	BEGIN
+		SELECT @GeomRegion = @GeomRegion.STUnion(ar.geom)
+		FROM areas_salud ar
+		WHERE ar.id_region = @codRegion
+		UPDATE region  SET geom = @GeomRegion
+		WHERE id = @codRegion
+		SET @GeomRegion = geometry::Parse('MULTIPOLYGON EMPTY')
+		FETCH NEXT FROM cursorCodRegion INTO @codRegion
+	END
+CLOSE cursorCodRegion
+DEALLOCATE cursorCodRegion
