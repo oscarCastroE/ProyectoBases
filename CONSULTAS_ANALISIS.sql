@@ -1,47 +1,48 @@
 -- CONSULTAS PARA EL ANÁLISIS 
 
 -- CONSULTA #1 (SOLO LLAVES FORÁNEAS) 
--- cada distrito y su cantón asociado
+-- código de distrito y cantón al que pertenecen los distritos de nombres HOSPITAL, ALAJUELA Y PALMARES.
 
+-- con índice sobre nombre_dis
+CREATE NONCLUSTERED INDEX index_nd
+ON distritos (nombre_dis);
+DROP INDEX index_nd ON distritos;
 -- normal 
-select d.cod_dis, d.nombre_dis, c.cod_can, c.nombre_can
-from distritos d, cantones c
-where d.cod_can = c.cod_can;
--- con nested loop join.
-select d.cod_dis, d.nombre_dis, c.cod_can, c.nombre_can
+select d.cod_dis, c.nombre_can
 from distritos d, cantones c
 where d.cod_can = c.cod_can
+and d.nombre_dis = 'HOSPITAL'
+or d.nombre_dis = 'ALAJUELA'
+or d.nombre_dis = 'PALMARES';
+-- con IN
+select d.cod_dis, c.nombre_can
+from distritos d, cantones c
+where d.cod_can = c.cod_can
+and d.nombre_dis in ('HOSPITAL', 'ALAJUELA','PALMARES');
+-- con nested loop join.
+select d.cod_dis, c.nombre_can
+from distritos d, cantones c
+where d.cod_can = c.cod_can
+and d.nombre_dis = 'HOSPITAL'
+or d.nombre_dis = 'ALAJUELA'
+or d.nombre_dis = 'PALMARES'
 OPTION (LOOP JOIN);
 -- con nested merge join.
-select d.cod_dis, d.nombre_dis, c.cod_can, c.nombre_can
+select d.cod_dis, c.nombre_can
 from distritos d, cantones c
 where d.cod_can = c.cod_can
+and d.nombre_dis = 'HOSPITAL'
+or d.nombre_dis = 'ALAJUELA'
+or d.nombre_dis = 'PALMARES'
 OPTION (MERGE JOIN);
 -- con nested hash joins.
-select d.cod_dis, d.nombre_dis, c.cod_can, c.nombre_can
+select d.cod_dis, c.nombre_can
 from distritos d, cantones c
 where d.cod_can = c.cod_can
+and d.nombre_dis = 'HOSPITAL'
+or d.nombre_dis = 'ALAJUELA'
+or d.nombre_dis = 'PALMARES'
 OPTION (HASH JOIN);
--- 10 distritos con códigos entre 10101-10110 y el cantón al que pertenece (MODIFICADA PARA IN VS OR)
--- con IN
-select d.cod_dis, d.nombre_dis, c.cod_can, c.nombre_can
-from distritos d, cantones c
-where d.cod_can = c.cod_can
-and d.cod_dis IN (10101, 10102, 10103, 10104, 10105, 10107, 10108, 10109, 10110);
--- con OR
-select d.cod_dis, d.nombre_dis, c.cod_can, c.nombre_can
-from distritos d, cantones c
-where d.cod_can = c.cod_can
-and d.cod_dis = 10101
-OR d.cod_dis = 10102
-OR d.cod_dis = 10103
-OR d.cod_dis = 10104
-OR d.cod_dis = 10105
-OR d.cod_dis = 10107
-OR d.cod_dis = 10108
-OR d.cod_dis = 10109
-OR d.cod_dis = 10110;
-
 -- CONSULTA #2 (LLAVES FORÁNEAS Y RELACIONES TOPOLÓGICAS)
 
 -- cada distrito en riesgo de incendio y el cantón al que pertenece 
