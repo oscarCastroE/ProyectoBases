@@ -381,7 +381,7 @@ SET geom = geom.STUnion(geom.STStartPoint());
 UPDATE AreaSalud_crtm05
 SET geom = geom.STBuffer(0.00001).STBuffer(-0.00001);
 
--- |||||||||||||||||||||| INSERTAR PRIMERO LAS REGIONES Y AREAS DE SALUD (IR ABAJO LÍNEA #10286) ||||||||||||||||||||||
+-- |||||||||||||||||||||| INSERTAR PRIMERO LAS REGIONES Y AREAS DE SALUD (IR ABAJO LÍNEA #10293) ||||||||||||||||||||||
 
 -- LLENO LA TABLA #1 DE PROVINCIAS
 
